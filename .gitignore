@@ -5,3 +5,4 @@ vendor/
 # Tests
 coverage-report.*
 phpunit.xml
+test.php

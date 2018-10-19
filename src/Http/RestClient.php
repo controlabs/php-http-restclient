@@ -2,10 +2,16 @@
 
 namespace Controlabs\Http;
 
-use Controlabs\Http\Handler;
-
+/**
+ * @method Response get()
+ * @method Response put(array $params = [])
+ * @method Response post(array $params = [])
+ * @method Response delete(array $params = [])
+ */
 class RestClient
 {
+    protected const VALID_METHODS = ['get', 'post', 'put', 'delete'];
+
     private $handler;
 
     protected $url;
@@ -15,6 +21,8 @@ class RestClient
     protected $method = 'GET';
 
     protected $params = [];
+
+    protected $bindings = [];
 
     protected $headers = [];
 
@@ -43,12 +51,16 @@ class RestClient
         return new static($baseUrl, $headers, $reuse);
     }
 
-    public function url($url, $params = [])
+    public function url($url, $params = [], $bindings = [])
     {
         $this->url = $url;
 
         if ($params) {
             $this->params = array_merge($this->params, $params);
+        }
+
+        if ($bindings) {
+            $this->bindings = array_merge($this->bindings, $bindings);
         }
 
         return $this;
@@ -89,6 +101,20 @@ class RestClient
         return $this;
     }
 
+    public function bind($name, $value)
+    {
+        $this->bindings[$name] = $value;
+
+        return $this;
+    }
+
+    public function bindings(array $bindings)
+    {
+        $this->bindings = array_merge($this->bindings, $bindings);
+
+        return $this;
+    }
+
     public function data($data)
     {
         $this->content = $data;
@@ -98,21 +124,23 @@ class RestClient
 
     protected function buildUri($params = [])
     {
-        $baseParts  = parse_url($this->baseUrl);
+        $baseParts = parse_url($this->baseUrl);
 
-        $baseScheme = isset($baseParts['scheme']) ? $baseParts['scheme']: '';
-        $baseHost   = isset($baseParts['host']) ? $baseParts['host']    : '';
-        $basePort   = isset($baseParts['port']) ? $baseParts['port']    : null;
+        $baseScheme = $baseParts['scheme'] ?? '';
+        $baseHost = $baseParts['host'] ?? '';
+        $basePort = $baseParts['port'] ?? null;
+        $basePath = $baseParts['path'] ?? '';
 
         $baseUrl = ($baseScheme !== '' ? $baseScheme . '://' : '')
             . $baseHost
-            . ($basePort ? ':' . $basePort : '');
+            . ($basePort ? ':' . $basePort : '')
+            . $basePath;
 
-        $parts    = parse_url($this->url);
+        $parts = parse_url($this->url);
 
-        $path     = isset($parts['path']) ? $parts['path']        : '';
-        $query    = isset($parts['query']) ? $parts['query']      : '';
-        $fragment = isset($parts['fragment']) ? $parts['fragment']: '';
+        $path = isset($parts['path']) ? $parts['path'] : '';
+        $query = isset($parts['query']) ? $parts['query'] : '';
+        $fragment = isset($parts['fragment']) ? $parts['fragment'] : '';
 
         $params = $params ?: $this->params;
 
@@ -131,7 +159,9 @@ class RestClient
 
         $url = '/' . ltrim($url, '/');
 
-        return $baseUrl . $url;
+        $bindings = $this->bindings;
+
+        return str_replace(array_keys($bindings), array_values($bindings), $baseUrl . $url);
     }
 
     protected function send($method, $postFields = [])
@@ -150,31 +180,12 @@ class RestClient
         return $response;
     }
 
-    public function get($params = [])
+    public function __call($method, $arguments)
     {
-        $response = $this->send('GET');
+        if (!in_array($method, self::VALID_METHODS)) {
+            throw new \RuntimeException('Invalid method : ' . $method);
+        }
 
-        return $response;
-    }
-
-    public function post($values = [])
-    {
-        $response = $this->send('POST', $values);
-
-        return $response;
-    }
-
-    public function put($values = [])
-    {
-        $response = $this->send('PUT', $values);
-
-        return $response;
-    }
-
-    public function delete($values = [])
-    {
-        $response = $this->send('DELETE', $values);
-
-        return $response;
+        return $this->send(strtoupper($method), ...$arguments);
     }
 }

@@ -3,11 +3,13 @@
 namespace Controlabs\Http;
 
 use Controlabs\Http\CurlInfo;
-use Controlabs\Http\CurlResponse;
+use Controlabs\Http\Response;
 
 class CurlHandler
 {
     private $resource;
+    private $info;
+    private $error;
 
     public function __construct()
     {
@@ -127,7 +129,7 @@ class CurlHandler
         $contentType = $info['content_type'];
         $httpCode = $info['http_code'];
 
-        $response = new CurlResponse($httpCode, $content);
+        $response = new Response($httpCode, $content);
         $response->setContentType($contentType);
 
         return $response;
