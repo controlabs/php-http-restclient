@@ -23,5 +23,8 @@
         "test": "phpunit -c phpunit.xml --colors=always",
         "test-cover": "phpunit --coverage-text",
         "phpstan": "phpstan analyse src --level=7"
+    },
+    "config": {
+        "bin-dir": "bin"
     }
 }

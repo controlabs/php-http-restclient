@@ -50,6 +50,10 @@ class MediaTypeParser extends \ArrayObject
 
             return $document;
         };
+
+        $this['text/plain'] = function ($input) {
+            return $input;
+        };
     }
 
     public function parse($format, $content)
